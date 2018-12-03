@@ -15,6 +15,44 @@ public static partial class Days
 
   public static string Day1()
   {
+    var current = 0;
 
+    var changes = File.ReadAllLines(@"Days/Input/Day1.txt").ToArray();
+
+    var freqDict = new Dictionary<int, bool>();
+
+    while(!freqDict.Any(x => x.Value))
+    {
+      for(var row = 0; row < changes.Length; row++)
+      {
+        var change = changes[row];
+
+        var op = change[0];
+        var number = int.Parse(change.Substring(1));
+
+        switch(op)
+        {
+          case '+':
+          {
+            current += number;
+          } break;
+          case '-':
+          {
+            current -= number;
+          } break;
+        }
+
+        if(freqDict.ContainsKey(current))
+        {
+          freqDict[current] = true;
+        }
+        else
+        {
+          freqDict.Add(current, false);
+        }
+      }
+    }
+
+    return OutputResult(current.ToString(), current.ToString());
   }
 }
