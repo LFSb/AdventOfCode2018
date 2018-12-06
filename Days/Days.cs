@@ -73,7 +73,41 @@ public static partial class Days
       if(grouped.Any(x => x.Count() == 3))
         threeCount++;
     }
+    
+    //Not quite right. Comparing wrong?
+    var ordered = string.Join("", input.OrderBy(x => x, new HammingComparer()).Take(2).GroupBy(x => x).Where(z => z.Count() > 1));
 
-    return OutputResult((twoCount * threeCount).ToString(), string.Empty);
+    return OutputResult((twoCount * threeCount).ToString(), ordered);
+  }
+
+  public class HammingComparer : IComparer<string>
+  {
+    public int Compare(string x, string y)
+    {
+      return CalculateHammingDistance(Encoding.UTF8.GetBytes(x), Encoding.UTF8.GetBytes(y));
+    }
+  }
+
+  public static Int32 CalculateHammingDistance(byte[] input1, byte[] input2)
+  {
+    var score = 0;
+
+    if(input1.Length != input2.Length)
+    {
+      throw new InvalidDataException("Input lengths are not equal. Aborting...");
+    }
+
+    for(var idx = 0; idx < input1.Length; idx++)
+    {
+      var val = input1[idx] ^ input2[idx];
+
+      while(val != 0)
+      {
+        score++;
+        val &= val - 1;
+      }
+    }
+
+    return score;
   }
 }
