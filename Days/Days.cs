@@ -45,6 +45,7 @@ public static partial class Days
         if(freqDict.ContainsKey(current))
         {
           freqDict[current] = true;
+          break;
         }
         else
         {
@@ -54,5 +55,25 @@ public static partial class Days
     }
 
     return OutputResult(current.ToString(), current.ToString());
+  }
+
+  public static string Day2()
+  {
+    var input = File.ReadAllLines(@"Days/Input/Day2.txt").ToArray();
+
+    var twoCount = 0;
+    var threeCount = 0;
+
+    foreach(var str in input)
+    {
+      var grouped = str.GroupBy(x => x);
+      
+      if(grouped.Any(x => x.Count() == 2))
+        twoCount++;
+      if(grouped.Any(x => x.Count() == 3))
+        threeCount++;
+    }
+
+    return OutputResult((twoCount * threeCount).ToString(), string.Empty);
   }
 }
