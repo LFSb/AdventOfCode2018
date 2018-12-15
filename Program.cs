@@ -5,6 +5,6 @@ public class Program
 {
   static void Main(string[] args)
   {
-    Console.WriteLine(Days.Day2());
+    Console.WriteLine(Days.Day3());
   }
 }
