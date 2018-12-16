@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using System.Diagnostics;
+using System.Globalization;
 
 public static partial class Days
 {
@@ -150,15 +151,15 @@ public static partial class Days
       new Claim("#3 @ 5,5: 2x2")
     };
 
-    var claims = File.ReadAllLines(InputBasePath + "Day3.txt").Select(input => new Claim(input)).ToArray();   
+    var claims = File.ReadAllLines(InputBasePath + "Day3.txt").Select(input => new Claim(input)).ToArray();
 
     var overlappingCoords = new List<Tuple<int, int>>();
 
-    foreach(var claim in claims)
+    foreach (var claim in claims)
     {
       var otherClaims = claims.Where(x => x.ID != claim.ID);
-      
-      foreach(var otherClaim in otherClaims)
+
+      foreach (var otherClaim in otherClaims)
       {
         overlappingCoords.AddRange(claim.OverLaps(otherClaim));
       }
@@ -259,7 +260,7 @@ public static partial class Days
     {
       var overlappingCoords = new List<Tuple<int, int>>();
 
-      if(this.OverlappedIds.Contains(otherClaim.ID))
+      if (this.OverlappedIds.Contains(otherClaim.ID))
       {
         return overlappingCoords; //They already overlap, no need to re-check.
       }
@@ -281,6 +282,132 @@ public static partial class Days
       }
 
       return overlappingCoords;
+    }
+  }
+
+  #endregion
+
+  #region Day 4
+
+  public static string Day4()
+  {
+    var testLogs = new[]{
+      "[1518-11-04 00:46] wakes up",
+      "[1518-11-02 00:50] wakes up",
+      "[1518-11-03 00:05] Guard #10 begins shift",
+      "[1518-11-04 00:02] Guard #99 begins shift",
+      "[1518-11-05 00:55] wakes up",
+      "[1518-11-01 23:58] Guard #99 begins shift",
+      "[1518-11-02 00:40] falls asleep",
+      "[1518-11-03 00:29] wakes up",
+      "[1518-11-01 00:30] falls asleep",
+      "[1518-11-04 00:36] falls asleep",
+      "[1518-11-01 00:55] wakes up",
+      "[1518-11-05 00:45] falls asleep",
+      "[1518-11-05 00:03] Guard #99 begins shift",
+      "[1518-11-01 00:05] falls asleep",
+      "[1518-11-03 00:24] falls asleep",
+      "[1518-11-01 00:25] wakes up",
+      "[1518-11-01 00:00] Guard #10 begins shift",
+    }; //Randomized to make sure the order of the input doesn't matter.
+
+    var logs = File.ReadAllLines(InputBasePath + "Day4.txt").Select(input => new Log(input)).OrderBy(x => x.DateTime).ToArray();
+
+    //var logs = testLogs.Select(input => new Log(input)).OrderBy(x => x.DateTime).ToArray();
+
+    var guards = logs.Where(log => log.Action.StartsWith("Guard")).GroupBy(x => x.Action).Select(guard => new Guard(guard.First())).ToArray(); //Get the distinct guards.
+
+    foreach(var guard in guards)
+    {
+      var startLogs = logs.Where(x => x.Action.StartsWith($"Guard #{guard.ID}")).ToArray();
+
+      var guardLogs = new List<Log>();
+
+      foreach(var startLog in startLogs)
+      {
+        var index = Array.IndexOf(logs, startLog);
+
+        while(!logs[index + 1].Action.StartsWith("Guard"))
+        {
+          guardLogs.Add(logs[index + 1]);
+          index++;
+          
+          if(index + 1 == logs.Length)
+          {
+            break;
+          }
+        }
+      }
+
+      guard.CalculateSleepTime(guardLogs);
+    }
+
+    var mostAsleep = guards.OrderByDescending(guard => guard.TotalAsleepMinutes).First();
+
+    return OutputResult((mostAsleep.ID * mostAsleep.AsleepMinutes.OrderByDescending(x => x.Value).First().Key).ToString(), string.Empty);
+  }
+
+  public class Log
+  {
+    public DateTime DateTime { get; set; }
+
+    public int Day => DateTime.Day;
+
+    public string Action { get; set; }
+
+    public Log(string input)
+    {
+      var split = input.Substring(1).Split(']');
+      DateTime = DateTime.ParseExact(split[0], "yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+      Action = split[1].Trim();
+    }
+  }
+
+  public class Guard
+  {
+    private const int BatchSize = 2;
+
+    public int ID { get; set; }
+
+    public Dictionary<int, int> AsleepMinutes { get; set; }
+
+    public int TotalAsleepMinutes => AsleepMinutes.Sum(x => x.Value);
+
+    public Guard(Log log)
+    {
+      ID = int.Parse(log.Action.Split('#')[1].Split(' ')[0]); //The first log should always be the one where the guard begins the shift. This contains the ID.
+    }
+
+    public Dictionary<int, int> CalculateSleepTime(List<Log> logs)
+    {
+      AsleepMinutes = new Dictionary<int, int>();
+
+      //For the next logs, parse them in batches of two and keep track of the difference in minutes between the two times. All the times between the AsleepTime and WakeupTime are the minutes asleep.
+      var batches = Math.Ceiling(logs.Count() / (decimal)BatchSize);
+
+      for(var batch = 0; batch < batches; batch++)
+      {
+        var sleepyTime = logs.Skip(batch * BatchSize).Take(BatchSize);
+        var sleeptime = sleepyTime.First();
+
+        var diff = Math.Abs((sleeptime.DateTime - sleepyTime.Skip(1).First().DateTime).Minutes); //The amount of minutes to start counting from the first moment.
+
+        for(var s = 0; s < diff; s++) //-1 because the last minute counts as awake.
+        {
+          var currentTime = s + sleeptime.DateTime.Minute;
+
+          if(!AsleepMinutes.ContainsKey(currentTime))
+          {
+            AsleepMinutes.Add(currentTime, 1);
+          }
+          else
+          {
+            AsleepMinutes[currentTime]++;
+          }
+        }
+      }
+
+      return AsleepMinutes;
     }
   }
 
